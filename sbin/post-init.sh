@@ -7,20 +7,15 @@ exec 2>&1
 
 echo $(date) START of post-init.sh
 
-# Remount rootfs rw
-  #/sbin/busybox mount rootfs -o remount,rw
-
 ##### Early-init phase #####
 
 # Android Logger enable tweak
-if /sbin/busybox [ "`/sbin/busybox grep ANDROIDLOGGER /system/etc/tweaks.conf`" ]; then
-  insmod /lib/modules/logger.ko
-fi
+#if /sbin/busybox [ "`/sbin/busybox grep ANDROIDLOGGER /system/etc/tweaks.conf`" ]; then
+#  insmod /lib/modules/logger.ko
+#fi
 
 # IPv6 privacy tweak
-#if /sbin/busybox [ "`/sbin/busybox grep IPV6PRIVACY /system/etc/tweaks.conf`" ]; then
-  echo "2" > /proc/sys/net/ipv6/conf/all/use_tempaddr
-#fi
+echo "2" > /proc/sys/net/ipv6/conf/all/use_tempaddr
 
 # Enable CIFS tweak
 #if /sbin/busybox [ "`/sbin/busybox grep CIFS /system/etc/tweaks.conf`" ]; then
@@ -29,17 +24,16 @@ fi
 #  /sbin/busybox rm /lib/modules/cifs.ko
 #fi
 
-# Tweak cfq io scheduler
-  for i in $(/sbin/busybox find /sys/block/mmc*)
-  do echo "0" > $i/queue/rotational
-    echo "0" > $i/queue/iostats
-    echo "8" > $i/queue/iosched/quantum
-    echo "4" > $i/queue/iosched/slice_async_rq
-    echo "1" > $i/queue/iosched/low_latency
-    echo "0" > $i/queue/iosched/slice_idle
-    echo "1" > $i/queue/iosched/back_seek_penalty
-    echo "1000000000" > $i/queue/iosched/back_seek_max
-  done
+echo $(date) USER INIT START from /sbin/init.d
+if cd /sbin/init.d >/dev/null 2>&1 ; then
+    for file in S* ; do
+        if ! ls "$file" >/dev/null 2>&1 ; then continue ; fi
+        echo "START '$file'"
+        /system/bin/sh "$file"
+        echo "EXIT '$file' ($?)"
+    done
+fi
+echo $(date) USER INIT DONE from /sbin/init.d
 
 # Remount all partitions with noatime
   for k in $(/sbin/busybox mount | /sbin/busybox grep relatime | /sbin/busybox cut -d " " -f3)
@@ -54,35 +48,6 @@ fi
         sync
         /sbin/busybox mount -o remount,commit=15 $k
   done
-  
-# Miscellaneous tweaks
-  echo "12288" > /proc/sys/vm/min_free_kbytes
-  echo "1500" > /proc/sys/vm/dirty_writeback_centisecs
-  echo "200" > /proc/sys/vm/dirty_expire_centisecs
-  echo "0" > /proc/sys/vm/swappiness
-
-# CFS scheduler tweaks
-  echo HRTICK > /sys/kernel/debug/sched_features
-
-# SD cards (mmcblk) read ahead tweaks
-  echo "256" > /sys/block/mmcblk0/bdi/read_ahead_kb
-  echo "256" > /sys/block/mmcblk1/bdi/read_ahead_kb
-
-# TCP tweaks
-  echo "2" > /proc/sys/net/ipv4/tcp_syn_retries
-  echo "2" > /proc/sys/net/ipv4/tcp_synack_retries
-  echo "10" > /proc/sys/net/ipv4/tcp_fin_timeout
-
-# SCHED_MC power savings level
-  echo "1" > /sys/devices/system/cpu/sched_mc_power_savings
-
-# Turn off debugging for certain modules
-  echo "0" > /sys/module/wakelock/parameters/debug_mask
-  echo "0" > /sys/module/userwakelock/parameters/debug_mask
-  echo "0" > /sys/module/earlysuspend/parameters/debug_mask
-  echo "0" > /sys/module/alarm/parameters/debug_mask
-  echo "0" > /sys/module/alarm_dev/parameters/debug_mask
-  echo "0" > /sys/module/binder/parameters/debug_mask
 
 ##### Install SU #####
 
@@ -126,10 +91,6 @@ fi
 echo $(date) PRE-INIT DONE of post-init.sh
 ##### Post-init phase #####
 sleep 12
-
-# Cleanup busybox
-  #/sbin/busybox rm /sbin/busybox
-  #/sbin/busybox mount rootfs -o remount,ro
 
 # init.d support
 echo $(date) USER EARLY INIT START from /system/etc/init.d
