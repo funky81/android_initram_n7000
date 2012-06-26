@@ -17,6 +17,18 @@ echo $(date) START of post-init.sh
 # IPv6 privacy tweak
 echo "2" > /proc/sys/net/ipv6/conf/all/use_tempaddr
 
+#activate defrag
+if /sbin/busybox [ "`/sbin/busybox cat /data/tweaks.conf | grep defrag=on`" ];
+then
+	echo "defrag: on"
+	for i in \
+		`/sbin/busybox find /data -iname "*.db"`
+	do \
+		sqlite3 $i 'VACUUM;'; 
+  	done
+fi
+
+
 # Enable CIFS tweak
 #if /sbin/busybox [ "`/sbin/busybox grep CIFS /system/etc/tweaks.conf`" ]; then
 #  /sbin/busybox insmod /lib/modules/cifs.ko
