@@ -712,7 +712,7 @@ service media /system/bin/mediaserver
     group system audio camera inet net_bt net_bt_admin
     ioprio rt 4
 
-service samsungani /sbin/bootanimation.sh
+service samsungani /system/bin/samsungani
     class main
     user graphics
     group graphics
